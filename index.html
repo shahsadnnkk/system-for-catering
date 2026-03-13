@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Al Badariyya Caters</title>
+
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+background:#f4f4f4;
+}
+
+header{
+background:#b22222;
+color:white;
+padding:15px;
+text-align:center;
+font-size:20px;
+font-weight:bold;
+}
+
+nav{
+display:flex;
+background:white;
+border-bottom:1px solid #ddd;
+}
+
+nav button{
+flex:1;
+padding:12px;
+border:none;
+background:white;
+font-weight:bold;
+}
+
+.container{
+padding:15px;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+input,textarea,select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+button{
+background:#b22222;
+color:white;
+border:none;
+padding:10px;
+border-radius:6px;
+}
+
+.customer{
+background:white;
+padding:10px;
+border-radius:8px;
+margin-bottom:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+.actions button{
+margin-right:5px;
+font-size:12px;
+padding:6px 10px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.stat{
+background:white;
+padding:15px;
+border-radius:10px;
+text-align:center;
+}
+
+.brand{
+text-align:center;
+font-size:12px;
+color:#777;
+margin-top:15px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>Al Badariyya Caters</header>
+
+<nav>
+<button onclick="showPage('dashboard')">Dashboard</button>
+<button onclick="showPage('customers')">Customers</button>
+<button onclick="showPage('menu')">Menu</button>
+</nav>
+
+<div class="container">
+
+<!-- DASHBOARD -->
+
+<div id="dashboard">
+
+<div class="stats">
+
+<div class="stat">
+<b>Total Orders</b>
+<p id="orders">0</p>
+</div>
+
+<div class="stat">
+<b>Total Advance</b>
+<p id="totalIncome">₹0</p>
+</div>
+
+<div class="stat">
+<b>Pending Balance</b>
+<p id="pendingBalance">₹0</p>
+</div>
+
+<div class="stat">
+<b>Total Customers</b>
+<p id="customerCount">0</p>
+</div>
+
+</div>
+
+</div>
+
+<!-- CUSTOMER PAGE -->
+
+<div id="customers" style="display:none">
+
+<div class="card">
+
+<h3>Add Booking</h3>
+
+<input id="name" placeholder="Customer Name">
+
+<input id="phone" placeholder="Phone">
+
+<input id="date" type="date">
+
+<select id="menu">
+<option>Chicken Biriyani</option>
+<option>Alfaham</option>
+<option>Kuzhimanthi</option>
+<option>Mandhi</option>
+<option>Meals</option>
+</select>
+
+<input id="total" type="number" placeholder="Total Amount">
+
+<input id="advance" type="number" placeholder="Advance">
+
+<input id="balance" placeholder="Balance" readonly>
+
+<textarea id="note" placeholder="Order Notes"></textarea>
+
+<button onclick="saveCustomer()">Save Booking</button>
+
+</div>
+
+<input id="search" placeholder="Search customer..." onkeyup="renderCustomers()">
+
+<div id="customerList"></div>
+
+</div>
+
+<!-- MENU PAGE -->
+
+<div id="menuPage" style="display:none">
+
+<div class="card">
+
+<h3>Al Badariyya Caters Menu</h3>
+
+<ul>
+<li>Chicken Biriyani</li>
+<li>Alfaham</li>
+<li>Kuzhimanthi</li>
+<li>Mandhi</li>
+<li>Meals</li>
+<li>Beef Curry</li>
+</ul>
+
+</div>
+
+</div>
+
+<div class="brand">Al Badariyya Caters • Catering Management</div>
+
+</div>
+
+<script>
+
+let customers = JSON.parse(localStorage.getItem("albadariyya_data")) || []
+let editIndex = -1
+
+function showPage(page){
+
+document.getElementById("dashboard").style.display="none"
+document.getElementById("customers").style.display="none"
+document.getElementById("menuPage").style.display="none"
+
+if(page==="dashboard") document.getElementById("dashboard").style.display="block"
+if(page==="customers") document.getElementById("customers").style.display="block"
+if(page==="menu") document.getElementById("menuPage").style.display="block"
+
+}
+
+document.getElementById("total").addEventListener("input",calculateBalance)
+document.getElementById("advance").addEventListener("input",calculateBalance)
+
+function calculateBalance(){
+
+let total = Number(document.getElementById("total").value) || 0
+let advance = Number(document.getElementById("advance").value) || 0
+
+document.getElementById("balance").value = total - advance
+
+}
+
+function saveCustomer(){
+
+let data = {
+
+name:document.getElementById("name").value,
+phone:document.getElementById("phone").value,
+date:document.getElementById("date").value,
+menu:document.getElementById("menu").value,
+total:Number(document.getElementById("total").value),
+advance:Number(document.getElementById("advance").value),
+balance:Number(document.getElementById("balance").value),
+note:document.getElementById("note").value
+
+}
+
+if(editIndex === -1){
+
+customers.push(data)
+
+}else{
+
+customers[editIndex] = data
+editIndex = -1
+
+}
+
+localStorage.setItem("albadariyya_data",JSON.stringify(customers))
+
+clearForm()
+renderCustomers()
+updateDashboard()
+
+}
+
+function renderCustomers(){
+
+let list=document.getElementById("customerList")
+let search=document.getElementById("search").value.toLowerCase()
+
+list.innerHTML=""
+
+customers.forEach((c,i)=>{
+
+if(c.name.toLowerCase().includes(search) || c.phone.includes(search)){
+
+list.innerHTML+=`
+
+<div class="customer">
+
+<b>${c.name}</b><br>
+${c.menu} • ${c.date}<br>
+Total ₹${c.total} | Balance ₹${c.balance}
+
+<div class="actions">
+
+<button onclick="editCustomer(${i})">Edit</button>
+<button onclick="deleteCustomer(${i})">Delete</button>
+<button onclick="sendWhatsApp('${c.phone}',${c.balance})">WhatsApp</button>
+
+</div>
+
+</div>
+
+`
+
+}
+
+})
+
+}
+
+function editCustomer(i){
+
+let c = customers[i]
+
+document.getElementById("name").value=c.name
+document.getElementById("phone").value=c.phone
+document.getElementById("date").value=c.date
+document.getElementById("menu").value=c.menu
+document.getElementById("total").value=c.total
+document.getElementById("advance").value=c.advance
+document.getElementById("balance").value=c.balance
+document.getElementById("note").value=c.note
+
+editIndex=i
+
+window.scrollTo(0,0)
+
+}
+
+function deleteCustomer(i){
+
+customers.splice(i,1)
+
+localStorage.setItem("albadariyya_data",JSON.stringify(customers))
+
+renderCustomers()
+updateDashboard()
+
+}
+
+function sendWhatsApp(phone,balance){
+
+let msg=`Al Badariyya Caters\nYour balance amount is ₹${balance}`
+
+window.open("https://wa.me/91"+phone+"?text="+encodeURIComponent(msg))
+
+}
+
+function updateDashboard(){
+
+let income=0
+let pending=0
+
+customers.forEach(c=>{
+
+income+=c.advance
+pending+=c.balance
+
+})
+
+document.getElementById("orders").innerText=customers.length
+document.getElementById("customerCount").innerText=customers.length
+document.getElementById("totalIncome").innerText="₹"+income
+document.getElementById("pendingBalance").innerText="₹"+pending
+
+}
+
+function clearForm(){
+
+document.querySelectorAll("input,textarea").forEach(e=>e.value="")
+
+}
+
+renderCustomers()
+updateDashboard()
+
+</script>
+
+</body>
+</html>
